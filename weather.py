@@ -13,12 +13,7 @@ np.random.seed(1)
 feature_names = ["Date","Location","MinTemp","MaxTemp","Rainfall","Evaporation","Sunshine","WindGustDir","WindGustSpeed","WindDir9am","WindDir3pm","WindSpeed9am","WindSpeed3pm","Humidity9am","Humidity3pm","Pressure9am","Pressure3pm","Cloud9am","Cloud3pm","Temp9am","Temp3pm","RainToday","RainTomorrow"]
 
 data = np.genfromtxt('weatherAUS.txt', delimiter=',', dtype=str)
-#labels = data[:,数据集attributes数量]
-#le= sklearn.preprocessing.LabelEncoder()
-#le.fit(labels)
-#labels = le.transform(labels)
-#class_names = le.classes_
-#data = data[:,:-1]
+
 from sklearn.preprocessing import Imputer
 
 labels = data[:,22]
@@ -83,9 +78,13 @@ explainer = lime.lime_tabular.LimeTabularExplainer(train ,feature_names =
 print("check3")
 
 minList = data[0].tolist()
+print("minList: ", minList)
 maxList = data[0].tolist()
+print("maxList: ", maxList)
 pivotList = data[0].tolist()
+print("pivotList: ", pivotList)
 rangeList =data[0].tolist()
+print("rangeList: ", rangeList)
 
 for i in range(1, len(data)):
     for ii in numerical_features:
@@ -115,11 +114,6 @@ def cmp (a, b):
 def takeSensi(elem):
     return elem[1]
 
-def getFirst(elem):
-    return elem[0]
-
-sensitivity_count = 0
-
 for i in range(1653, 1654):
     exp = explainer.explain_instance(data[i], predict_fn, num_features=15)
     exp.show_in_notebook(show_all=False)
@@ -129,18 +123,22 @@ for i in range(1653, 1654):
 
     print("i: ",i)
     print("exp2: ",exp.local_exp[1])
-    #print("exp3: ",exp.local_exp[1][0])
-    #print("exp4: ",exp.local_exp[1][0][1])
+    print("exp3: ",exp.local_exp[1][0])
+    print("exp4: ",exp.local_exp[1][0][1])
     print("blackbox: ",exp.predict_proba)
-    #print("blackbox[0]: ",exp.predict_proba.tolist()[0]," blackbox[1]: ",exp.predict_proba.tolist()[1])
+    print("blackbox[0]: ",exp.predict_proba.tolist()[0]," blackbox[1]: ",exp.predict_proba.tolist()[1])
 
     feature_list = []
+    FW_list = []
     sensitivity_list = []
     flag = cmp(exp.predict_proba.tolist()[0], exp.predict_proba.tolist()[1])
 
     for ii in range(0, len(exp.local_exp[1])):
         if((exp.local_exp[1][ii][1] >= 0.015 or exp.local_exp[1][ii][1] <= -0.015) and exp.local_exp[1][ii][0] in numerical_features):
             feature_list.append(exp.local_exp[1][ii][0])
+            FW_list.append(exp.local_exp[1][ii])
+            #sensitivity_list[exp.local_exp[1][ii][0]].append((0, exp.local_exp[1][ii][1]))
+    print(feature_list)
 
     for ii in feature_list:
         print("ii: ", ii)
@@ -151,17 +149,25 @@ for i in range(1653, 1654):
         max_data = copy.deepcopy(data[i])
         max_data[ii] = maxList[ii]
 
+
         min_exp = explainer.explain_instance(min_data, predict_fn, num_features=15)
         min_flag = cmp(min_exp.predict_proba.tolist()[0], min_exp.predict_proba.tolist()[1])
 
         max_exp = explainer.explain_instance(max_data, predict_fn, num_features=15)
         max_flag = cmp(max_exp.predict_proba.tolist()[0], max_exp.predict_proba.tolist()[1])
 
+
+        #print("flag: ", flag)
+        #print("min_flag: ", min_flag)
+        #print("max_flag: ", max_flag)
+
         if (flag == min_flag):
             left_rev = -1
         else:
             left_rev = 1
-
+            #print("test_data[%d]:" % ii, test_data[ii])
+            #print("min_data[%d]:" % ii, min_data[ii])
+            #print("max_data[%d]:" % ii, max_data[ii])
             upper = copy.deepcopy(test_data)
             lower = copy.deepcopy(min_data)
 
@@ -226,23 +232,9 @@ for i in range(1653, 1654):
         elif (left_rev == 1 and right_rev == 1):
             sensitivity_list.append((ii, min(left_sensi, right_sensi)))     
 
-    print(feature_list)
+    print(FW_list)
     sensitivity_list.sort(key = takeSensi, reverse = True)
     print(sensitivity_list)
-    sensi_list = []
-    for ii in range(0, len(sensitivity_list)):
-        sensi_list.append(sensitivity_list[ii][0])
-
-    print(sensi_list) 
-
-    diff = 0
-    for ii in range(0, len(feature_list)):
-        feature_rank = ii
-        sensi_rank = sensi_list.index(feature_list[ii])
-        diff = diff + abs(feature_rank - sensi_rank)
-
-    sensitivity_count = sensitivity_count + diff / len(feature_list)
-    print("sensitivity_count: ", sensitivity_count)
 
 
 '''
@@ -267,12 +259,12 @@ for i in range(1653, 1654):
                         sensitivity_list[ii].append((j, test_exp.local_exp[1][jj][1]))
 
     print(sensitivity_list)
+'''
 
 
 
 
-
-
+'''
 np.random.seed(1)
 numFidelity = 0
 featureNum = 0
@@ -291,10 +283,10 @@ for ii in range(1653, 1654):
     print("exp4: ",exp.local_exp[1][0][1])
     print("blackbox: ",exp.predict_proba)
     print("blackbox[0]: ",exp.predict_proba.tolist()[0]," blackbox[1]: ",exp.predict_proba.tolist()[1])
+'''
 
 
-
-
+'''
 for ii in range(0,len(data)):
 #ii = 1
 #len(data)-1
@@ -340,5 +332,4 @@ print("i",ii,"test[i]",data[ii])
 #ii = 2
 #exp = explainer.explain_instance(data[ii], predict_fn, num_features=15)
 #exp.show_in_notebook(show_all=False)
-
 '''
